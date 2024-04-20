@@ -6,6 +6,8 @@ logger:
   level: DEBUG
   esp8266_store_log_strings_in_flash: False
   */
+//#include <esphome/core/application.h>
+//#include <esphome/components/i2c/i2c.h>
 
 #define APE_TEXT_SENSOR
 //#define APE_LOGGING
@@ -109,8 +111,9 @@ protected:
 class ApeTextSensor : public text_sensor::TextSensor
 {
 public:
-  ApeTextSensor(ArduinoPortExpander *parent, uint8_t sensorId, const std::string name) : text_sensor::TextSensor(name)
+  ApeTextSensor(ArduinoPortExpander *parent, uint8_t sensorId, const std::string name) : text_sensor::TextSensor()//(name)
   {
+    this->set_name(name.c_str());
     this->sensorId_ = sensorId;
   }
   uint8_t get_sensorId() { return this->sensorId_; }
@@ -120,10 +123,10 @@ protected:
 };
 #endif
 
-class ArduinoPortExpander : public Component, public I2CDevice
+class ArduinoPortExpander : public Component, public i2c::I2CDevice
 {
 public:
-  ArduinoPortExpander(I2CBus *bus, uint8_t address, bool vref_default = false)
+  ArduinoPortExpander(i2c::I2CBus *bus, uint8_t address, bool vref_default = false)
   {
     set_i2c_address(address);
     set_i2c_bus(bus);
@@ -153,7 +156,7 @@ public:
         return;
       this->configure_ = try_configure;
 
-      if (ERROR_OK == this->read_register(APE_CMD_DIGITAL_READ, const_cast<uint8_t *>(this->read_buffer_), 9)) //changed 3 to 9
+      if (i2c::ERROR_OK == this->read_register(APE_CMD_DIGITAL_READ, const_cast<uint8_t *>(this->read_buffer_), 9)) //changed 3 to 9
       {
 #ifdef APE_LOGGING
         ESP_LOGCONFIG(TAGape, "ArduinoPortExpander found at %#02x", address_);
@@ -217,7 +220,7 @@ public:
     }
 
 #ifdef APE_BINARY_SENSOR
-    if (ERROR_OK != this->read_register(APE_CMD_DIGITAL_READ, const_cast<uint8_t *>(this->read_buffer_), 9)) //Changed this from 3 to 9
+    if (i2c::ERROR_OK != this->read_register(APE_CMD_DIGITAL_READ, const_cast<uint8_t *>(this->read_buffer_), 9)) //Changed this from 3 to 9
     {
 #ifdef APE_LOGGING
       ESP_LOGE(TAGape, "Error reading. Reconfiguring pending.");
@@ -288,7 +291,7 @@ if(previousMillis == 0 || (millis() - previousMillis >= updateInterval)) {
 #ifdef APE_SENSOR
   uint16_t analogRead(uint8_t pin)
   {
-    bool ok = (ERROR_OK == this->read_register((uint8_t)(CMD_ANALOG_READ_A0 + pin), const_cast<uint8_t *>(this->read_buffer_), 2));
+    bool ok = (i2c::ERROR_OK == this->read_register((uint8_t)(CMD_ANALOG_READ_A0 + pin), const_cast<uint8_t *>(this->read_buffer_), 2));
 #ifdef APE_LOGGING
     ESP_LOGVV(TAGape, "analog read pin: %d ok: %d byte0: %d byte1: %d", pin, ok, this->read_buffer_[0], this->read_buffer_[1]);
 #endif
@@ -300,7 +303,7 @@ if(previousMillis == 0 || (millis() - previousMillis >= updateInterval)) {
 #ifdef APE_TEXT_SENSOR
   std::string textRead(uint8_t id)
   {
-    bool ok = (ERROR_OK == this->read_register((uint8_t)(CMD_READ_TEXT + id), const_cast<uint8_t *>(this->read_buffer_), 9));
+    bool ok = (i2c::ERROR_OK == this->read_register((uint8_t)(CMD_READ_TEXT + id), const_cast<uint8_t *>(this->read_buffer_), 9));
  #ifdef APE_LOGGING
     //ESP_LOGVV(TAGape, "text read id: %d ok: %d byte0: %d byte1: %d", pin, ok, this->read_buffer_[0], this->read_buffer_[1]);
  #endif
